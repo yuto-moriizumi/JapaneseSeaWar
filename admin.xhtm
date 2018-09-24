@@ -1,0 +1,199 @@
+<html>
+
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>Page Title</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- <link rel="stylesheet" type="text/css" media="screen" href="main.css" /> -->
+</head>
+
+<body>
+    <img id="map" style="display:none;" src="map.png">
+    <div style="text-align: center;">
+        <canvas id="myCanvas" width="1000px" height="500px"></canvas>
+        <table border="1">
+            <tr>
+                <th>選択したプロヴィンスのRGB</th>
+                <td id="selectRGB"></td>
+                <td></td>
+            </tr>
+            <tr>
+                <th>州RGB</th>
+                <td id="stateRGB"></td>
+                <td></td>
+            </tr>
+            <tr>
+                <th>領有国RGB</th>
+                <td><input id="ownerRGB" type="text" value=""></td>
+                <td></td>
+            </tr>
+            <tr>
+                <th>領有国名</th>
+                <td id="ownerName"></td>
+                <td></td>
+            </tr>
+        </table>
+        <button id="idAdd" type="button" onclick="addProvince();" disabled>追加する</button>
+
+    </div>
+    <script>
+        //初期設定
+        var canvas = document.getElementById("myCanvas");
+        var ctx = canvas.getContext("2d");
+        var map = document.getElementById("map");
+        var dSelectRGB = document.getElementById("selectRGB");
+        var dStateRGB = document.getElementById("stateRGB");
+        var dOwnerRGB = document.getElementById("ownerRGB");
+        var dOwnerName = document.getElementById("ownerName");
+
+        //CSV読み込み
+        function csvToArray(path) {
+            var csvData = new Array();
+            var data = new XMLHttpRequest();
+            data.open("GET", path, false);
+            data.send(null);
+            var LF = String.fromCharCode(10);
+            var lines = data.responseText.split(LF);
+            for (var i = 0; i < lines.length; ++i) {
+                var cells = lines[i].split(",");
+                if (cells.length != 1) {
+                    csvData.push(cells);
+                }
+            }
+            return csvData;
+        }
+
+        window.onload = function () {
+            //キャンバスの初期設定
+            canvas.width = map.width;
+            canvas.height = map.height;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(map, 0, 0);
+            provinceImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            politicalImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            putPoliticalMap();
+        }
+
+        function putPoliticalMap() { //政治マップに更新            
+            var csv = csvToArray("provinces.csv?=" + Math.random());
+            for (var j = 1; j < csv.length; j++) {
+                var color = csv[j][1].split(".");
+                for (var i = 0; i <= politicalImageData.height * politicalImageData.width * 4; i += 4) {
+                    //console.log(politicalImageData.data[i] + "." + politicalImageData.data[i + 1] + "." + politicalImageData.data[i + 2]);
+                    if (politicalImageData.data[i] + "." + politicalImageData.data[i + 1] + "." + politicalImageData.data[i + 2] == csv[j][0]) {
+                        politicalImageData.data[i] = color[0];
+                        politicalImageData.data[i + 1] = color[1];
+                        politicalImageData.data[i + 2] = color[2];
+                    }
+                }
+            }
+            ctx.putImageData(politicalImageData, 0, 0);
+        }
+
+        function addProvince() { //プロヴィンスデータを追加
+            var xmlhttp = createXmlHttpRequest();
+            if (xmlhttp != null) {
+                xmlhttp.open("POST", "./admin.php", false);
+                xmlhttp.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+                var data = "data=" + "addProvince," + dSelectRGB.innerText + "," + dOwnerRGB.value;
+                xmlhttp.send(data);
+                var result = xmlhttp.responseText;
+                if (data == "Failed") alert("失敗");
+                document.getElementById('idAdd').disabled = true;
+                putPoliticalMap();
+            } else alert("通信エラー");
+        }
+
+        //マウスクリック
+        canvas.onclick = function (evt) {
+            ctx.putImageData(politicalImageData, 0, 0);
+            var x = parseInt(evt.offsetX);
+            var y = parseInt(evt.offsetY);
+            var dataOffset = (x + y * provinceImageData.width) * 4;
+            var mouseColorR = provinceImageData.data[dataOffset];
+            var mouseColorG = provinceImageData.data[dataOffset + 1];
+            var mouseColorB = provinceImageData.data[dataOffset + 2];
+            dSelectRGB.innerText = mouseColorR + "." + mouseColorG + "." + mouseColorB;
+
+            //境界線選択を無効化
+            if (mouseColorR == 0 && mouseColorG == 0 && mouseColorB == 0) document.getElementById('idAdd').disabled = true;
+            else {
+                //網掛け処理
+                var tempImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                for (var i = 0; i <= tempImageData.height * tempImageData.width * 4; i += 4) {
+                    if (provinceImageData.data[i] == mouseColorR && provinceImageData.data[i + 1] == mouseColorG && provinceImageData.data[i + 2] == mouseColorB) {
+                        if (i % (tempImageData.width / 16) <= tempImageData.width / 32) {
+                            tempImageData.data[i] = 255;
+                            tempImageData.data[i + 1] = 255;
+                            tempImageData.data[i + 2] = 0;
+                            //tempImageData.data[i + 3] = 255; 一応書いておいた
+                        }
+                    }
+                }
+                ctx.putImageData(tempImageData, 0, 0);
+
+                //CSVからデータを取り出す
+                var pCsv = csvToArray("provinces.csv?=" + Math.random());
+                var pDataLine = -1;
+                for (var i = 0; i < pCsv.length; i++) {
+                    if (pCsv[i][0] == mouseColorR + "." + mouseColorG + "." + mouseColorB) {
+                        pDataLine = i; //データがある行数を取得
+                    }
+                }
+
+                if (pDataLine == -1) { //データが存在しない場合
+                    dStateRGB.innerText = "データなし";
+                    dOwnerName.innerText = "データなし";
+                    document.getElementById('idAdd').disabled = false;
+                } else {
+                    dStateRGB.innerText = pCsv[pDataLine][0];
+                    dOwnerRGB.value = pCsv[pDataLine][1];
+                    var neighbourColors = pCsv[pDataLine][2].split(";");
+                    /*
+                    neighbourColors.forEach(element => {
+                        text.innerText += element;
+                    });
+                    */
+
+                    var cCsv = csvToArray("countries.csv?=" + Math.random());
+                    var cDataLine = -1;
+                    for (var i = 0; i < cCsv.length; i++) {
+                        if (cCsv[i][0] == pCsv[pDataLine][1]) {
+                            cDataLine = i; //データがある行数を取得
+                        }
+                    }
+                    if (cDataLine == -1) { //データが存在しない場合
+                        dOwnerName.innerText = "国データ未登録";
+                    } else {
+                        dOwnerName.innerText = cCsv[cDataLine][1];
+                    }
+                    document.getElementById('idAdd').disabled = true;
+                }
+            }
+        }
+
+        //PHPとデータを送受信するところ
+        function createXmlHttpRequest() {
+            var xmlhttp = null;
+            if (window.ActiveXObject) {
+                try {
+                    xmlhttp = new ActiveXObject("Msxml2.XMLHTTP");
+                }
+                catch (e) {
+                    try {
+                        xmlhttp = new ActiveXObject("Microsoft.XMLHTTP");
+                    }
+                    catch (e2) {
+                    }
+                }
+            }
+            else if (window.XMLHttpRequest) {
+                xmlhttp = new XMLHttpRequest();
+            }
+            return xmlhttp;
+        }
+    </script>
+</body>
+
+</html>
