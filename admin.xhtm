@@ -8,15 +8,24 @@
     <!-- <link rel="stylesheet" type="text/css" media="screen" href="main.css" /> -->
 </head>
 
-<body>
+<body style=" margin: 0px !important;">
     <img id="map" style="display:none;" src="map.png">
-    <div style="text-align: center;">
-        <canvas id="myCanvas" width="1000px" height="500px"></canvas>
-        <table border="1">
+    <div style="height: 10%; text-align: center; background-color: sienna; width:100%;">
+        <img id="myCountryImg" src="" style="float:left" height="100%">
+        <table style="background-color:darkgrey; font-size: 2em; font-weight: 700;">
             <tr>
-                <th>選択したプロヴィンスのRGB</th>
-                <td id="selectRGB"></td>
-                <td></td>
+                <td id="myCountryName"></td>
+            </tr>
+        </table>
+    </div>
+    <div style="text-align:center;background-color:greenyellow">
+        <canvas id="myCanvas" width="1000px" height="500px"></canvas>
+    </div>
+    <div style="height:20%; text-align: center; margin-bottom: 0px; background-color: sienna; width:100%;">
+        <table border="1" style="background-color:darkgray;">
+            <th>選択したプロヴィンスのRGB</th>
+            <td id="selectRGB"></td>
+            <td></td>
             </tr>
             <tr>
                 <th>州RGB</th>
@@ -33,9 +42,15 @@
                 <td id="ownerName"></td>
                 <td></td>
             </tr>
+            <tr>
+                <th>外交関係</th>
+                <td id="idRelation"></td>
+                <td></td>
+            </tr>
         </table>
         <button id="idAdd" type="button" onclick="addProvince();" disabled>追加する</button>
-
+        <button id="idSelect" type="button" onclick="select();" disabled>国を選択</button>
+        <button id="idDeclareWar" type="button" onclick="declareWar();" disabled>宣戦布告</button>
     </div>
     <script>
         //初期設定
@@ -46,6 +61,11 @@
         var dStateRGB = document.getElementById("stateRGB");
         var dOwnerRGB = document.getElementById("ownerRGB");
         var dOwnerName = document.getElementById("ownerName");
+        var dMyImg = document.getElementById("myCountryImg");
+        var dMyName = document.getElementById("myCountryName");
+        var myRGB = 0;
+        var isCountrySelect = 0;
+        var eRelation = document.getElementById("idRelation");
 
         //CSV読み込み
         function csvToArray(path) {
@@ -55,8 +75,8 @@
             data.send(null);
             var LF = String.fromCharCode(10);
             var lines = data.responseText.split(LF);
-            for (var i = 0; i < lines.length; ++i) {
-                var cells = lines[i].split(",");
+            for (let i = 0; i < lines.length; ++i) {
+                let cells = lines[i].split(",");
                 if (cells.length != 1) {
                     csvData.push(cells);
                 }
@@ -80,7 +100,6 @@
             for (var j = 1; j < csv.length; j++) {
                 var color = csv[j][1].split(".");
                 for (var i = 0; i <= politicalImageData.height * politicalImageData.width * 4; i += 4) {
-                    //console.log(politicalImageData.data[i] + "." + politicalImageData.data[i + 1] + "." + politicalImageData.data[i + 2]);
                     if (politicalImageData.data[i] + "." + politicalImageData.data[i + 1] + "." + politicalImageData.data[i + 2] == csv[j][0]) {
                         politicalImageData.data[i] = color[0];
                         politicalImageData.data[i + 1] = color[1];
@@ -105,6 +124,27 @@
             } else alert("通信エラー");
         }
 
+        function select() { //国選択
+            //var tOwnerName = dOwnerName.innerText.split("\n", 2);
+            dMyImg.src = "flags/" + dOwnerRGB.value + ".png";
+            dMyName.innerText = dOwnerName.innerText;
+            isCountrySelect = 1;
+            myRGB = dSelectRGB.value;
+        }
+
+        function declareWar() { //宣戦布告
+            var xmlhttp = createXmlHttpRequest();
+            if (xmlhttp != null) {
+                xmlhttp.open("POST", "./admin.php", false);
+                xmlhttp.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+                var data = "data=" + "declareWar," + dMyName.innerText + "," + dOwnerName.innerText;
+                xmlhttp.send(data);
+                var result = xmlhttp.responseText;
+                if (data == "Failed") alert("失敗");
+                alert(dOwnerName.innerText + "に宣戦布告しました！");
+            } else alert("通信エラー");
+        }
+
         //マウスクリック
         canvas.onclick = function (evt) {
             ctx.putImageData(politicalImageData, 0, 0);
@@ -117,11 +157,17 @@
             dSelectRGB.innerText = mouseColorR + "." + mouseColorG + "." + mouseColorB;
 
             //境界線選択を無効化
-            if (mouseColorR == 0 && mouseColorG == 0 && mouseColorB == 0) document.getElementById('idAdd').disabled = true;
-            else {
+            if (mouseColorR == 0 && mouseColorG == 0 && mouseColorB == 0) {
+                document.getElementById('idAdd').disabled = true;
+                document.getElementById('idSelect').disabled = true;
+                document.getElementById("idDeclareWar").disabled = true;
+                dStateRGB.innerText = "データなし";
+                dOwnerName.innerText = "境界線";
+                eRelation.innerText = "データなし";
+            } else {
                 //網掛け処理
                 var tempImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-                for (var i = 0; i <= tempImageData.height * tempImageData.width * 4; i += 4) {
+                for (let i = 0; i <= tempImageData.height * tempImageData.width * 4; i += 4) {
                     if (provinceImageData.data[i] == mouseColorR && provinceImageData.data[i + 1] == mouseColorG && provinceImageData.data[i + 2] == mouseColorB) {
                         if (i % (tempImageData.width / 16) <= tempImageData.width / 32) {
                             tempImageData.data[i] = 255;
@@ -136,7 +182,7 @@
                 //CSVからデータを取り出す
                 var pCsv = csvToArray("provinces.csv?=" + Math.random());
                 var pDataLine = -1;
-                for (var i = 0; i < pCsv.length; i++) {
+                for (let i = 0; i < pCsv.length; i++) {
                     if (pCsv[i][0] == mouseColorR + "." + mouseColorG + "." + mouseColorB) {
                         pDataLine = i; //データがある行数を取得
                     }
@@ -145,7 +191,10 @@
                 if (pDataLine == -1) { //データが存在しない場合
                     dStateRGB.innerText = "データなし";
                     dOwnerName.innerText = "データなし";
+                    eRelation.innerText = "データなし";
                     document.getElementById('idAdd').disabled = false;
+                    document.getElementById('idSelect').disabled = true;
+                    document.getElementById("idDeclareWar").disabled = true;
                 } else {
                     dStateRGB.innerText = pCsv[pDataLine][0];
                     dOwnerRGB.value = pCsv[pDataLine][1];
@@ -165,8 +214,30 @@
                     }
                     if (cDataLine == -1) { //データが存在しない場合
                         dOwnerName.innerText = "国データ未登録";
-                    } else {
+                        eRelation.innerText = "データなし";
+                        document.getElementById('idSelect').disabled = true;
+                        document.getElementById("idDeclareWar").disabled = true;
+                    } else if (dOwnerRGB.value == "63.95.191") { //海をクリックした場合
+                        dOwnerName.innerText = "海";
+                        eRelation.innerText = "データなし";
+                        document.getElementById('idSelect').disabled = true;
+                        document.getElementById("idDeclareWar").disabled = true;
+                    } else { //国クリックした場合
                         dOwnerName.innerText = cCsv[cDataLine][1];
+                        document.getElementById('idSelect').disabled = false;
+
+                        var wCsv = csvToArray("wars.csv?=" + Math.random());
+                        var isWar = 0;
+                        for (let i = 0; i < wCsv.length; i++) {
+                            if (wCsv[i][0] == pCsv[pDataLine][1]) {
+                                if (wCsv[i][1] == myRGB) isWar = 1;
+                            } else if (wCsv[i][1] == pCsv[pDataLine][1]) {
+                                if (wCsv[i][0] == myRGB) isWar = 1;
+                            }
+                        }
+                        alert(dOwnerRGB.value + "," + myRGB);
+                        if (myRGB == 0 || isWar == 1 || dOwnerRGB.value == myRGB) document.getElementById("idDeclareWar").disabled = true; //自国が未選択か、戦争中か、自国が自国領を選択した場合
+                        else document.getElementById("idDeclareWar").disabled = false;
                     }
                     document.getElementById('idAdd').disabled = true;
                 }
