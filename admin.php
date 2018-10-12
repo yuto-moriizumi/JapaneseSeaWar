@@ -12,6 +12,11 @@ if( strcmp($command[0], "addProvince") == 0 ){ //マップクリック処理
     fwrite($fp,$command[1].",\n");
     fclose($fp);
     print "Success";
+}else if( strcmp($command[0], "declareWar") == 0 ){ //マップクリック処理
+    $fp = fopen('wars.csv', 'a');
+    fwrite($fp,$command[1]."\n");
+    fclose($fp);
+    print "Success";
 }else{
     print "Failed";
 }

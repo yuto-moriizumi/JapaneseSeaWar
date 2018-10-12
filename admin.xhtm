@@ -12,9 +12,13 @@
     <img id="map" style="display:none;" src="map.png">
     <div style="height: 10%; text-align: center; background-color: sienna; width:100%;">
         <img id="myCountryImg" src="" style="float:left" height="100%">
-        <table style="background-color:darkgrey; font-size: 2em; font-weight: 700;">
+        <table>
             <tr>
-                <td id="myCountryName"></td>
+                <td id="myCountryName" style="background-color:darkgrey; font-size: 2em; font-weight: 700;"></td>
+                <th>国庫：</th>
+                <td id="idMoney"></td>
+                <th>軍事力：</th>
+                <td id="idMil"></td>
             </tr>
         </table>
     </div>
@@ -66,6 +70,10 @@
         var myRGB = 0;
         var isCountrySelect = 0;
         var eRelation = document.getElementById("idRelation");
+        var eMyMoney = document.getElementById("idMoney");
+        var selectMoney = 0;
+        var eMyMil = document.getElementById("idMil");
+        var selectMil = 0;
 
         //CSV読み込み
         function csvToArray(path) {
@@ -129,7 +137,9 @@
             dMyImg.src = "flags/" + dOwnerRGB.value + ".png";
             dMyName.innerText = dOwnerName.innerText;
             isCountrySelect = 1;
-            myRGB = dSelectRGB.value;
+            myRGB = dOwnerRGB.value;
+            eMyMoney.innerText = selectMoney;
+            eMyMil.innerText = selectMil;
         }
 
         function declareWar() { //宣戦布告
@@ -137,11 +147,15 @@
             if (xmlhttp != null) {
                 xmlhttp.open("POST", "./admin.php", false);
                 xmlhttp.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
-                var data = "data=" + "declareWar," + dMyName.innerText + "," + dOwnerName.innerText;
+                var data = "data=" + "declareWar," + myRGB + "," + dOwnerRGB.value;
                 xmlhttp.send(data);
                 var result = xmlhttp.responseText;
                 if (data == "Failed") alert("失敗");
-                alert(dOwnerName.innerText + "に宣戦布告しました！");
+                else {
+                    document.getElementById("idDeclareWar").disabled = true;
+                    eRelation.innerText = "戦争中！";
+                    alert(dOwnerName.innerText + "に宣戦布告しました！");
+                }
             } else alert("通信エラー");
         }
 
@@ -224,18 +238,26 @@
                         document.getElementById("idDeclareWar").disabled = true;
                     } else { //国クリックした場合
                         dOwnerName.innerText = cCsv[cDataLine][1];
+                        selectMoney = cCsv[cDataLine][2];
+                        selectMil = cCsv[cDataLine][3];
                         document.getElementById('idSelect').disabled = false;
+                        eRelation.innerText = "中立";
 
                         var wCsv = csvToArray("wars.csv?=" + Math.random());
                         var isWar = 0;
                         for (let i = 0; i < wCsv.length; i++) {
                             if (wCsv[i][0] == pCsv[pDataLine][1]) {
-                                if (wCsv[i][1] == myRGB) isWar = 1;
+                                if (wCsv[i][1] == myRGB) {
+                                    isWar = 1;
+                                    eRelation.innerText = "戦争中！";
+                                }
                             } else if (wCsv[i][1] == pCsv[pDataLine][1]) {
-                                if (wCsv[i][0] == myRGB) isWar = 1;
+                                if (wCsv[i][0] == myRGB) {
+                                    isWar = 1;
+                                    eRelation.innerText = "戦争中！";
+                                }
                             }
                         }
-                        alert(dOwnerRGB.value + "," + myRGB);
                         if (myRGB == 0 || isWar == 1 || dOwnerRGB.value == myRGB) document.getElementById("idDeclareWar").disabled = true; //自国が未選択か、戦争中か、自国が自国領を選択した場合
                         else document.getElementById("idDeclareWar").disabled = false;
                     }
