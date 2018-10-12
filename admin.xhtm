@@ -12,9 +12,9 @@
     <img id="map" style="display:none;" src="map.png">
     <div style="height: 10%; text-align: center; background-color: sienna; width:100%;">
         <img id="myCountryImg" src="" style="float:left" height="100%">
-        <table>
+        <table style="background-color:darkgrey;">
             <tr>
-                <td id="myCountryName" style="background-color:darkgrey; font-size: 2em; font-weight: 700;"></td>
+                <td id="myCountryName" style="font-size: 2em; font-weight: 700;"></td>
                 <th>国庫：</th>
                 <td id="idMoney"></td>
                 <th>軍事力：</th>
@@ -104,14 +104,21 @@
         }
 
         function putPoliticalMap() { //政治マップに更新            
-            var csv = csvToArray("provinces.csv?=" + Math.random());
-            for (var j = 1; j < csv.length; j++) {
-                var color = csv[j][1].split(".");
-                for (var i = 0; i <= politicalImageData.height * politicalImageData.width * 4; i += 4) {
-                    if (politicalImageData.data[i] + "." + politicalImageData.data[i + 1] + "." + politicalImageData.data[i + 2] == csv[j][0]) {
-                        politicalImageData.data[i] = color[0];
-                        politicalImageData.data[i + 1] = color[1];
-                        politicalImageData.data[i + 2] = color[2];
+            let pCsv = csvToArray("provinces.csv?=" + Math.random());
+            for (let j = 1; j < pCsv.length; j++) { //プロヴィンスデータを1行ずつ読み込み
+                let ownerColor = pCsv[j][1].split(".");
+                let controllColor = pCsv[j][2].split(".");
+                for (let i = 0; i <= politicalImageData.height * politicalImageData.width * 4; i += 4) { //1行ごとに全体をスキャンして色を置き換え
+                    if (politicalImageData.data[i] + "." + politicalImageData.data[i + 1] + "." + politicalImageData.data[i + 2] == pCsv[j][0]) {
+                        if (i % (politicalImageData.width * 32) < politicalImageData.width * 16) {
+                            politicalImageData.data[i] = ownerColor[0];
+                            politicalImageData.data[i + 1] = ownerColor[1];
+                            politicalImageData.data[i + 2] = ownerColor[2];
+                        } else {
+                            politicalImageData.data[i] = controllColor[0];
+                            politicalImageData.data[i + 1] = controllColor[1];
+                            politicalImageData.data[i + 2] = controllColor[2];
+                        }
                     }
                 }
             }
@@ -123,7 +130,7 @@
             if (xmlhttp != null) {
                 xmlhttp.open("POST", "./admin.php", false);
                 xmlhttp.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
-                var data = "data=" + "addProvince," + dSelectRGB.innerText + "," + dOwnerRGB.value;
+                var data = "data=" + "addProvince," + dSelectRGB.innerText + "," + dOwnerRGB.value + "," + dOwnerRGB.value;
                 xmlhttp.send(data);
                 var result = xmlhttp.responseText;
                 if (data == "Failed") alert("失敗");
