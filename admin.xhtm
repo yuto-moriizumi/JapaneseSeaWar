@@ -55,6 +55,7 @@
         <button id="idAdd" type="button" onclick="addProvince();" disabled>追加する</button>
         <button id="idSelect" type="button" onclick="select();" disabled>国を選択</button>
         <button id="idDeclareWar" type="button" onclick="declareWar();" disabled>宣戦布告</button>
+        <button id="idNextTurn" type="button" onclick="nextTurn();">次のターン</button>
     </div>
     <script>
         //初期設定
@@ -163,6 +164,15 @@
                     eRelation.innerText = "戦争中！";
                     alert(dOwnerName.innerText + "に宣戦布告しました！");
                 }
+            } else alert("通信エラー");
+        }
+
+        function nextTurn() { //ターンを進める
+            var xmlhttp = createXmlHttpRequest();
+            if (xmlhttp != null) {
+                xmlhttp.open("POST", "./cron.php", false);
+                xmlhttp.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+                if (data == "Failed") alert("失敗");
             } else alert("通信エラー");
         }
 
