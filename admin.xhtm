@@ -110,7 +110,7 @@
                 let controllColor = pCsv[j][2].split(".");
                 for (let i = 0; i <= politicalImageData.height * politicalImageData.width * 4; i += 4) { //1行ごとに全体をスキャンして色を置き換え
                     if (politicalImageData.data[i] + "." + politicalImageData.data[i + 1] + "." + politicalImageData.data[i + 2] == pCsv[j][0]) {
-                        if (i % (politicalImageData.width * 32) < politicalImageData.width * 16) {
+                        if (i % (politicalImageData.width * 16) < politicalImageData.width * 6) {
                             politicalImageData.data[i] = ownerColor[0];
                             politicalImageData.data[i + 1] = ownerColor[1];
                             politicalImageData.data[i + 2] = ownerColor[2];
