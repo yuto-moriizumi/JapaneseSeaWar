@@ -109,25 +109,30 @@
 
         function updateMap(sx, sy, ex, ey) { //政治マップに更新            
             let pCsv = csvToArray("provinces.csv?=" + Math.random());
-            for (let j = 1; j < pCsv.length; j++) { //プロヴィンスデータを1行ずつ読み込み
-                let ownerColor = pCsv[j][1].split(".");
-                let controllColor = pCsv[j][2].split(".");
-
-                for (let i = sy; i <= ey; i += 1) { //1行ごとに全体をスキャンして色を置き換え
-                    for (let k = (sx + i * politicalImageData.width) * 4; k <= (ex + i * politicalImageData.width) * 4; k += 4) {
-                        if (politicalImageData.data[k] + "." + politicalImageData.data[k + 1] + "." + politicalImageData.data[k + 2] == pCsv[j][0]) {
-                            if (k % (politicalImageData.width * 16) < politicalImageData.width * 6) {
-                                politicalImageData.data[k] = ownerColor[0];
-                                politicalImageData.data[k + 1] = ownerColor[1];
-                                politicalImageData.data[k + 2] = ownerColor[2];
-                            } else {
-                                politicalImageData.data[k] = controllColor[0];
-                                politicalImageData.data[k + 1] = controllColor[1];
-                                politicalImageData.data[k + 2] = controllColor[2];
-                            }
+            let ownerColor = []; //色データを事前に分割
+            let controllColor = [];
+            for (let i = 1; i < pCsv.length; i++) { //1行目はラベルなので飛ばす
+                ownerColor[i] = pCsv[i][1].split(".");
+                controllColor[i] = pCsv[i][2].split(".");
+            }
+            for (let i = sy; i <= ey; i += 1) { //マップを幅1pxずつスキャン
+                for (let k = (sx + i * politicalImageData.width) * 4; k <= (ex + i * politicalImageData.width) * 4; k += 4) { //x軸方向のスキャン
+                    let color = politicalImageData.data[k] + "." + politicalImageData.data[k + 1] + "." + politicalImageData.data[k + 2];
+                    for (let j = 1; j < pCsv.length; j++) { //プロヴィンスデータを1行ずつ読み込み、1行目はラベルなので飛ばす
+                        if (color == pCsv[j][0]) {
+                            //if (k % (politicalImageData.width * 16) < politicalImageData.width * 6) {
+                            //    politicalImageData.data[k] = ownerColor[0];
+                            //    politicalImageData.data[k + 1] = ownerColor[1];
+                            //    politicalImageData.data[k + 2] = ownerColor[2];
+                            //} else {
+                            politicalImageData.data[k] = controllColor[j][0];
+                            politicalImageData.data[k + 1] = controllColor[j][1];
+                            politicalImageData.data[k + 2] = controllColor[j][2];
+                            //}
                         }
                     }
                 }
+
             }
             ctx.putImageData(politicalImageData, 0, 0);
         }
