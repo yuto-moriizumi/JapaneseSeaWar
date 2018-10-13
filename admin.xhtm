@@ -10,6 +10,10 @@
 
 <body style=" margin: 0px !important;">
     <img id="map" style="display:none;" src="map.png">
+    <script>
+        var map = document.getElementById("map");
+        map.src = "map.png?=" + Math.random();
+    </script>
     <div style="height: 10%; text-align: center; background-color: sienna; width:100%;">
         <img id="myCountryImg" src="" style="float:left" height="100%">
         <table style="background-color:darkgrey;">
@@ -61,7 +65,6 @@
         //初期設定
         var canvas = document.getElementById("myCanvas");
         var ctx = canvas.getContext("2d");
-        var map = document.getElementById("map");
         var dSelectRGB = document.getElementById("selectRGB");
         var dStateRGB = document.getElementById("stateRGB");
         var dOwnerRGB = document.getElementById("ownerRGB");
@@ -101,24 +104,27 @@
             ctx.drawImage(map, 0, 0);
             provinceImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
             politicalImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-            putPoliticalMap();
+            updateMap(0, 0, politicalImageData.width, politicalImageData.height);
         }
 
-        function putPoliticalMap() { //政治マップに更新            
+        function updateMap(sx, sy, ex, ey) { //政治マップに更新            
             let pCsv = csvToArray("provinces.csv?=" + Math.random());
             for (let j = 1; j < pCsv.length; j++) { //プロヴィンスデータを1行ずつ読み込み
                 let ownerColor = pCsv[j][1].split(".");
                 let controllColor = pCsv[j][2].split(".");
-                for (let i = 0; i <= politicalImageData.height * politicalImageData.width * 4; i += 4) { //1行ごとに全体をスキャンして色を置き換え
-                    if (politicalImageData.data[i] + "." + politicalImageData.data[i + 1] + "." + politicalImageData.data[i + 2] == pCsv[j][0]) {
-                        if (i % (politicalImageData.width * 16) < politicalImageData.width * 6) {
-                            politicalImageData.data[i] = ownerColor[0];
-                            politicalImageData.data[i + 1] = ownerColor[1];
-                            politicalImageData.data[i + 2] = ownerColor[2];
-                        } else {
-                            politicalImageData.data[i] = controllColor[0];
-                            politicalImageData.data[i + 1] = controllColor[1];
-                            politicalImageData.data[i + 2] = controllColor[2];
+
+                for (let i = sy; i <= ey; i += 1) { //1行ごとに全体をスキャンして色を置き換え
+                    for (let k = (sx + i * politicalImageData.width) * 4; k <= (ex + i * politicalImageData.width) * 4; k += 4) {
+                        if (politicalImageData.data[k] + "." + politicalImageData.data[k + 1] + "." + politicalImageData.data[k + 2] == pCsv[j][0]) {
+                            if (k % (politicalImageData.width * 16) < politicalImageData.width * 6) {
+                                politicalImageData.data[k] = ownerColor[0];
+                                politicalImageData.data[k + 1] = ownerColor[1];
+                                politicalImageData.data[k + 2] = ownerColor[2];
+                            } else {
+                                politicalImageData.data[k] = controllColor[0];
+                                politicalImageData.data[k + 1] = controllColor[1];
+                                politicalImageData.data[k + 2] = controllColor[2];
+                            }
                         }
                     }
                 }
@@ -136,7 +142,7 @@
                 var result = xmlhttp.responseText;
                 if (data == "Failed") alert("失敗");
                 document.getElementById('idAdd').disabled = true;
-                putPoliticalMap();
+                updateMap(x - 100, y - 100, x + 100, y + 100);
             } else alert("通信エラー");
         }
 
@@ -172,6 +178,27 @@
             if (xmlhttp != null) {
                 xmlhttp.open("POST", "./cron.php", false);
                 xmlhttp.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+                xmlhttp.send(null);
+                dSelectRGB.innerText = "";
+                dStateRGB.innerText = "";
+                dOwnerRGB.value = "";
+                dOwnerName.innerText = "";
+                eRelation.innerText = "";
+                document.getElementById('idAdd').disabled = true;
+                document.getElementById('idSelect').disabled = true;
+                document.getElementById("idDeclareWar").disabled = true;
+                if (isCountrySelect == 1) {
+                    var cCsv = csvToArray("countries.csv?=" + Math.random());
+                    var cDataLine = -1;
+                    for (var i = 0; i < cCsv.length; i++) {
+                        if (cCsv[i][0] == myRGB) {
+                            cDataLine = i; //データがある行数を取得
+                        }
+                    }
+                    eMyMoney.innerText = cCsv[cDataLine][2];
+                    eMyMil.innerText = cCsv[cDataLine][3];
+                }
+                updateMap(0, 0, politicalImageData.width, politicalImageData.height);
                 if (data == "Failed") alert("失敗");
             } else alert("通信エラー");
         }
@@ -179,8 +206,8 @@
         //マウスクリック
         canvas.onclick = function (evt) {
             ctx.putImageData(politicalImageData, 0, 0);
-            var x = parseInt(evt.offsetX);
-            var y = parseInt(evt.offsetY);
+            x = parseInt(evt.offsetX);
+            y = parseInt(evt.offsetY);
             var dataOffset = (x + y * provinceImageData.width) * 4;
             var mouseColorR = provinceImageData.data[dataOffset];
             var mouseColorG = provinceImageData.data[dataOffset + 1];
